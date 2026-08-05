@@ -5,11 +5,9 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Cấu hình Middleware
-app.use(cors()); // Cho phép tất cả Frontend gọi vào API
+app.use(cors());
 app.use(express.json());
 
-// API Endpoint tạo link
 app.post('/api/create-link', async (req, res) => {
     try {
         let { url } = req.body;
@@ -18,54 +16,75 @@ app.post('/api/create-link', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Thiếu URL gốc' });
         }
 
-        // Tự động thêm https:// nếu thiếu
+        // Tự động bổ sung https:// nếu thiếu
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
             url = 'https://' + url;
         }
 
-        // Lấy API Key từ biến môi trường (hoặc điền trực tiếp nếu chạy nội bộ)
         const apiToken = process.env.LINK4M_API_TOKEN || '6a4f55d76ae7ad25c375ce6e';
-        const targetApi = `https://link4m.co/api-shorten?api=${encodeURIComponent(apiToken)}&url=${encodeURIComponent(url)}`;
 
-        // Gọi API Link4M từ Node.js với User-Agent giả lập trình duyệt
-        const response = await axios.get(targetApi, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'application/json, text/plain, */*'
-            },
-            timeout: 10000 // Giới hạn 10s
-        });
+        // Danh sách các đường dẫn API có thể có của Link4M
+        const apiEndpoints = [
+            `https://link4m.co/api-shorten?api=${encodeURIComponent(apiToken)}&url=${encodeURIComponent(url)}`,
+            `https://link4m.co/api?api=${encodeURIComponent(apiToken)}&url=${encodeURIComponent(url)}`
+        ];
 
-        const data = response.data;
-        const shortUrl = data.shortenedUrl || data.url || data.shortedUrl;
+        let responseData = null;
+        let lastError = null;
 
-        if (data.status === 'success' || shortUrl) {
-            return res.json({ 
-                success: true, 
-                shortUrl: shortUrl 
-            });
+        // Thử lần lượt các Endpoint
+        for (const targetApi of apiEndpoints) {
+            try {
+                const response = await axios.get(targetApi, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                        'Accept': 'application/json, text/plain, */*'
+                    },
+                    timeout: 10000
+                });
+
+                if (response.data) {
+                    responseData = response.data;
+                    break; // Thành công thì thoát vòng lặp
+                }
+            } catch (err) {
+                lastError = err;
+            }
+        }
+
+        if (!responseData) {
+            throw lastError || new Error('Không thể kết nối tới Link4M');
+        }
+
+        const shortUrl = responseData.shortenedUrl || responseData.url || responseData.shortedUrl;
+
+        if (responseData.status === 'success' || shortUrl) {
+            return res.json({ success: true, shortUrl: shortUrl });
         } else {
             return res.status(400).json({
                 success: false,
-                message: data.message || 'API Link4M từ chối tạo link'
+                message: responseData.message || 'API Link4M từ chối tạo link'
             });
         }
 
     } catch (error) {
-        console.error('Lỗi Backend:', error.message);
-        return res.status(500).json({
+        console.error('Lỗi chi tiết từ Link4M:', error.response?.data || error.message);
+
+        const statusCode = error.response?.status || 500;
+        const errorMsg = error.response?.data?.message || error.message;
+
+        return res.status(statusCode).json({
             success: false,
-            message: 'Lỗi máy chủ Node.js: ' + (error.response?.data?.message || error.message)
+            message: `Lỗi kết nối Link4M (${statusCode}): ${errorMsg}`
         });
     }
 });
 
-// Endpoint kiểm tra máy chủ hoạt động
 app.get('/', (req, res) => {
-    res.send('Node.js Backend đang hoạt động!');
+    res.send('Backend Node.js đang hoạt động!');
 });
 
 app.listen(PORT, () => {
-    console.log(`Server Node.js đang chạy tại cổng ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
-              
+            
