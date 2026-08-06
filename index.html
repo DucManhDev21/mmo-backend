@@ -2,73 +2,305 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mã Phần Thưởng</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>Lấy Mã Xác Nhận | TDM Rewards</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4 font-sans">
-  <div class="max-w-md w-full bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl text-center space-y-5">
-    <h1 class="text-xl font-bold text-cyan-400 uppercase tracking-wider">Nhiệm Vụ Hoàn Thành!</h1>
-    <p class="text-xs text-slate-400 leading-relaxed">
-      Sao chép mã bên dưới và quay lại trang chính để đổi quà. Link này chỉ sử dụng được 1 lần.
-    </p>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-    <div class="bg-slate-950 p-4 rounded-xl border border-slate-700 flex items-center justify-between gap-3">
-      <span id="codeText" class="text-base font-mono font-bold text-cyan-300 break-all">Đang xác thực...</span>
-      <button id="btnCopy" class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-2 rounded-lg text-xs font-bold shrink-0 transition">
-        Sao Chép
-      </button>
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+    body {
+      background-color: #030712;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.25) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.25) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(236, 72, 153, 0.2) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 40px 20px;
+    }
+
+    .ambient-bg {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      overflow: hidden; z-index: -1; pointer-events: none;
+    }
+    .ambient-orb {
+      position: absolute; border-radius: 50%; filter: blur(140px); pointer-events: none;
+    }
+    .orb-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: rgba(168, 85, 247, 0.2); }
+    .orb-2 { bottom: -10%; right: -10%; width: 500px; height: 500px; background: rgba(6, 182, 212, 0.2); }
+
+    .glass-panel {
+      background: rgba(17, 24, 39, 0.55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .glass-panel:hover {
+      border-color: rgba(168, 85, 247, 0.4);
+      box-shadow: 0 25px 60px rgba(168, 85, 247, 0.2);
+    }
+    .glass-panel.paused {
+      border-color: rgba(251, 191, 36, 0.4);
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.15);
+    }
+
+    .neon-text-purple { text-shadow: 0 0 10px rgba(168, 85, 247, 0.6), 0 0 20px rgba(168, 85, 247, 0.3); }
+    .neon-box-glow { box-shadow: 0 0 25px rgba(168, 85, 247, 0.35); }
+
+    #countdown {
+      font-size: 4.5rem; font-weight: 900; line-height: 1;
+      font-variant-numeric: tabular-nums;
+      background: linear-gradient(to right, #c084fc, #38bdf8, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: glowPulse 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes glowPulse {
+      from { filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.4)); }
+      to { filter: drop-shadow(0 0 25px rgba(56, 189, 248, 0.8)); }
+    }
+
+    .progress-container {
+      width: 100%; height: 8px; background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px; margin: 20px 0; overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .progress-bar {
+      height: 100%; width: 100%;
+      background: linear-gradient(90deg, #a855f7, #06b6d4, #ec4899);
+      border-radius: 10px; transition: width 0.25s linear;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.5);
+    }
+
+    input.glass-input {
+      background: rgba(3, 7, 18, 0.7);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: #38bdf8; outline: none; transition: all 0.3s ease;
+    }
+    input.glass-input:focus {
+      border-color: #06b6d4; box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+    }
+
+    #musicToggle {
+      position: fixed; bottom: 25px; right: 25px;
+      background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 50%;
+      width: 48px; height: 48px; display: flex; justify-content: center; align-items: center;
+      cursor: pointer; color: #ffffff; z-index: 100; transition: 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+    #musicToggle:hover { border-color: #a855f7; color: #a855f7; transform: scale(1.1); }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-bg">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+  </div>
+
+  <audio id="bgMusic" loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" type="audio/mpeg">
+  </audio>
+
+  <div id="datetimeDisplay" class="mb-6 px-5 py-2 rounded-full text-xs font-semibold tracking-wider text-slate-300 border border-white/10 bg-slate-900/50 backdrop-blur-md shadow-lg flex items-center space-x-2">
+    <span>🕒 Đang tải thời gian...</span>
+  </div>
+
+  <div id="mainBox" class="glass-panel max-w-md w-full p-8 rounded-3xl text-center space-y-6 relative border border-white/10 z-10">
+    <div class="flex items-center justify-center space-x-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 via-fuchsia-500 to-cyan-400 flex items-center justify-center text-white neon-box-glow">
+        <i class="fa-solid fa-gem text-lg"></i>
+      </div>
+      <div class="text-left">
+        <span class="font-black text-xl tracking-wider bg-gradient-to-r from-purple-400 via-fuchsia-300 to-cyan-400 bg-clip-text text-transparent neon-text-purple">TDM REWARDS</span>
+        <span class="block text-[9px] text-cyan-400 font-bold tracking-widest uppercase">Verification Portal</span>
+      </div>
     </div>
 
-    <a href="https://laymanhanthuong.vercel.app" class="inline-block text-xs text-slate-400 hover:text-cyan-400 hover:underline transition">
-      ← Quay lại trang laymanhanthuong.vercel.app
-    </a>
+    <div>
+      <h2 class="text-xl font-black text-white tracking-wide uppercase">Xác Nhận Hoàn Thành Nhiệm Vụ</h2>
+      <p id="statusText" class="text-xs text-slate-400 leading-relaxed mt-2 transition-colors duration-300">
+        Vui lòng giữ trang mở, hệ thống đang xử lý thời gian nhiệm vụ...
+      </p>
+    </div>
+
+    <div id="countdown">--</div>
+
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div id="resultArea" class="space-y-4 hidden">
+      <input type="text" id="codeResult" readonly class="glass-input w-full p-3.5 rounded-xl text-center font-mono text-xl font-bold uppercase tracking-widest">
+      
+      <button id="copyBtn" onclick="copyCode()" class="w-full bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-600/30 transition duration-300 uppercase text-xs tracking-wider flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-copy"></i>
+        <span>Sao Chép Mã Xác Nhận</span>
+      </button>
+
+      <a href="https://laymanhanthuong.vercel.app" class="block w-full text-center bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold py-3 rounded-xl transition duration-200">
+        <i class="fa-solid fa-arrow-left mr-1.5"></i> Quay lại trang chủ TDM Rewards
+      </a>
+      
+      <p class="text-[11px] text-slate-400">Hãy sao chép mã phía trên và quay lại trang chủ để nhận thưởng (+200₫).</p>
+    </div>
+  </div>
+
+  <div class="mt-8 text-center text-xs font-semibold tracking-widest text-slate-500 uppercase z-10">
+    Phát triển bởi <span class="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent font-bold">TDM Rewards Engine</span>
+  </div>
+
+  <div id="musicToggle" onclick="toggleMusic()" title="Bật/Tắt Nhạc">
+    <i class="fa-solid fa-music text-sm"></i>
   </div>
 
   <script>
-    const codeText = document.getElementById('codeText');
-    const btnCopy = document.getElementById('btnCopy');
+    // Đồng hồ thời gian thực
+    function updateDateTime() {
+      const now = new Date();
+      document.getElementById('datetimeDisplay').innerHTML = `🕒 ${now.toLocaleTimeString('vi-VN')} &nbsp;|&nbsp; ${now.toLocaleDateString('vi-VN')}`;
+    }
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
 
-    // Lấy Token từ URL query string
+    // Nhạc nền Lofi
+    const bgMusic = document.getElementById('bgMusic');
+    let isMusicPlaying = false;
+    window.addEventListener('click', () => {
+      if (!isMusicPlaying) {
+        bgMusic.volume = 0.3;
+        bgMusic.play().catch(() => {});
+        isMusicPlaying = true;
+        document.getElementById('musicToggle').innerHTML = '<i class="fa-solid fa-volume-high text-sm"></i>';
+      }
+    }, { once: true });
+
+    window.toggleMusic = () => {
+      if (bgMusic.paused) {
+        bgMusic.play();
+        document.getElementById('musicToggle').innerHTML = '<i class="fa-solid fa-volume-high text-sm"></i>';
+      } else {
+        bgMusic.pause();
+        document.getElementById('musicToggle').innerHTML = '<i class="fa-solid fa-volume-xmark text-sm"></i>';
+      }
+    };
+
+    // Lấy Token và UID từ URL
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
+    const uid = urlParams.get('uid');
 
-    async function claimCode() {
-      if (!token) {
-        codeText.className = "text-sm font-bold text-rose-400";
-        codeText.innerText = "Truy cập không hợp lệ! Vui lòng vượt link từ đầu.";
+    // Bộ đếm đếm ngược phía Client (UX)
+    const totalTime = 15;
+    let timeLeft = totalTime;
+    let timer = null;
+    let isFinished = false;
+    const systemStartTime = Date.now();
+
+    document.addEventListener('visibilitychange', () => {
+      if (isFinished) return;
+      const mainBox = document.getElementById('mainBox');
+      const statusText = document.getElementById('statusText');
+
+      if (document.hidden) {
+        mainBox.classList.add('paused');
+        statusText.innerText = "⏳ Đang chạy ngầm... Vui lòng quay lại tab để nhận mã.";
+        statusText.style.color = "#fbbf24";
+      } else {
+        mainBox.classList.remove('paused');
+        statusText.innerText = "Vui lòng giữ trang mở, hệ thống đang xử lý...";
+        statusText.style.color = "#94a3b8";
+      }
+    });
+
+    async function startCountdown() {
+      const statusText = document.getElementById('statusText');
+      const countdown = document.getElementById('countdown');
+      const progressContainer = document.getElementById('progressContainer');
+
+      if (!token || !uid) {
+        statusText.innerText = "Lỗi: Link không hợp lệ! (Thiếu dữ liệu xác thực).";
+        statusText.style.color = "#f43f5e";
+        countdown.style.display = 'none';
+        progressContainer.style.display = 'none';
         return;
       }
 
-      try {
-        const res = await fetch('/api/claim-code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
-        });
-        const data = await res.json();
+      countdown.innerText = timeLeft;
 
-        if (res.ok && data.code) {
-          codeText.className = "text-lg font-mono font-bold text-emerald-400";
-          codeText.innerText = data.code;
-        } else {
-          codeText.className = "text-sm font-bold text-rose-400";
-          codeText.innerText = data.error || "Link không khả dụng!";
+      timer = setInterval(async () => {
+        const elapsedSeconds = Math.floor((Date.now() - systemStartTime) / 1000);
+        timeLeft = totalTime - elapsedSeconds;
+
+        if (timeLeft < 0) timeLeft = 0;
+
+        countdown.innerText = timeLeft;
+        document.getElementById('progressBar').style.width = `${(timeLeft / totalTime) * 100}%`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          isFinished = true;
+          
+          countdown.innerText = "⏳";
+          statusText.innerText = "Đang xác thực kết quả với máy chủ...";
+
+          // Gọi API Bảo mật trên Server để xác thực & lấy mã[span_4](start_span)[span_4](end_span)
+          try {
+            const res = await fetch('/api/claim-code', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token, uid })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.code) {
+              countdown.style.display = 'none';
+              progressContainer.style.display = 'none';
+              statusText.innerText = "Xác minh & nhận mã thành công!";
+              statusText.style.color = "#34d399";
+              document.getElementById('codeResult').value = data.code;
+              document.getElementById('resultArea').classList.remove('hidden');
+            } else {
+              countdown.style.display = 'none';
+              progressContainer.style.display = 'none';
+              statusText.innerText = data.error || "Lỗi xác minh từ máy chủ!";
+              statusText.style.color = "#f43f5e";
+            }
+          } catch (err) {
+            countdown.style.display = 'none';
+            progressContainer.style.display = 'none';
+            statusText.innerText = "Lỗi kết nối máy chủ!";
+            statusText.style.color = "#f43f5e";
+          }
         }
-      } catch (err) {
-        codeText.className = "text-sm font-bold text-rose-400";
-        codeText.innerText = "Lỗi xác thực hệ thống!";
-      }
+      }, 250);
     }
 
-    claimCode();
+    startCountdown();
 
-    btnCopy.onclick = () => {
-      const text = codeText.innerText;
-      if (text && !text.includes("!")) {
-        navigator.clipboard.writeText(text);
-        alert("Đã sao chép mã thành công!");
-      }
+    window.copyCode = () => {
+      const el = document.getElementById('codeResult');
+      el.select();
+      navigator.clipboard.writeText(el.value);
+      const btn = document.getElementById('copyBtn');
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Đã Copy Mã Thành Công 🎉</span>';
+      btn.className = "w-full bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-600/30 transition duration-300 uppercase text-xs tracking-wider flex items-center justify-center space-x-2";
     };
   </script>
 </body>
