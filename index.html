@@ -200,7 +200,7 @@
       }
     };
 
-    // Lấy Token và UID từ URL
+    // Lấy Token và UID từ URL (Đã sửa: Bỏ bắt buộc tham số UID)
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const uid = urlParams.get('uid');
@@ -233,7 +233,8 @@
       const countdown = document.getElementById('countdown');
       const progressContainer = document.getElementById('progressContainer');
 
-      if (!token || !uid) {
+      // ĐÃ SỬA: Chỉ cần có 'token' là hợp lệ
+      if (!token) {
         statusText.innerText = "Lỗi: Link không hợp lệ! (Thiếu dữ liệu xác thực).";
         statusText.style.color = "#f43f5e";
         countdown.style.display = 'none';
@@ -259,22 +260,22 @@
           countdown.innerText = "⏳";
           statusText.innerText = "Đang xác thực kết quả với máy chủ...";
 
-          // Gọi API Bảo mật trên Server để xác thực & lấy mã[span_4](start_span)[span_4](end_span)
+          // Gọi API Bảo mật trên Server để xác thực & lấy mã
           try {
             const res = await fetch('/api/claim-code', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token, uid })
+              body: JSON.stringify({ token, uid: uid || null })
             });
 
             const data = await res.json();
 
-            if (res.ok && data.code) {
+            if (res.ok && (data.code || data.rewardCode)) {
               countdown.style.display = 'none';
               progressContainer.style.display = 'none';
               statusText.innerText = "Xác minh & nhận mã thành công!";
               statusText.style.color = "#34d399";
-              document.getElementById('codeResult').value = data.code;
+              document.getElementById('codeResult').value = data.code || data.rewardCode;
               document.getElementById('resultArea').classList.remove('hidden');
             } else {
               countdown.style.display = 'none';
