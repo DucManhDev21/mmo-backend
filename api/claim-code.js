@@ -34,13 +34,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Lỗi: Link đã hết hạn (quá 10 phút)!' });
     }
 
-    // Tạo mã thưởng ngẫu nhiên (hoặc tùy chỉnh định dạng theo ý bạn)
+    // 1. Tạo mã thưởng ngẫu nhiên
     const rewardCode = 'TDM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const now = Date.now();
 
-    // Đánh dấu token đã được nhận mã
+    // 2. LƯU MÃ VÀO COLLECTION 'codes' ĐỂ verify-code.js KIỂM TRA ĐƯỢC
+    await db.collection('codes').doc(rewardCode).set({
+      isUsed: false,
+      createdAt: now,
+      expiresAt: now + (24 * 60 * 60 * 1000), // Hết hạn sau 24 giờ
+      token: token
+    });
+
+    // 3. Đánh dấu token trong collection 'sessions' đã được nhận mã
     await sessionRef.update({
       used: true,
-      claimedAt: Date.now(),
+      claimedAt: now,
       rewardCode: rewardCode
     });
 
