@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mã Phần Thưởng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4 font-sans">
+  <div class="max-w-md w-full bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl text-center space-y-5">
+    <h1 class="text-xl font-bold text-cyan-400 uppercase tracking-wider">Nhiệm Vụ Hoàn Thành!</h1>
+    <p class="text-xs text-slate-400 leading-relaxed">
+      Sao chép mã bên dưới và quay lại trang chính để đổi quà. Link này chỉ sử dụng được 1 lần.
+    </p>
+
+    <div class="bg-slate-950 p-4 rounded-xl border border-slate-700 flex items-center justify-between gap-3">
+      <span id="codeText" class="text-base font-mono font-bold text-cyan-300 break-all">Đang xác thực...</span>
+      <button id="btnCopy" class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-2 rounded-lg text-xs font-bold shrink-0 transition">
+        Sao Chép
+      </button>
+    </div>
+
+    <a href="https://laymanhanthuong.vercel.app" class="inline-block text-xs text-slate-400 hover:text-cyan-400 hover:underline transition">
+      ← Quay lại trang laymanhanthuong.vercel.app
+    </a>
+  </div>
+
+  <script>
+    const codeText = document.getElementById('codeText');
+    const btnCopy = document.getElementById('btnCopy');
+
+    // Lấy Token từ URL query string
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    async function claimCode() {
+      if (!token) {
+        codeText.className = "text-sm font-bold text-rose-400";
+        codeText.innerText = "Truy cập không hợp lệ! Vui lòng vượt link từ đầu.";
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/claim-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.code) {
+          codeText.className = "text-lg font-mono font-bold text-emerald-400";
+          codeText.innerText = data.code;
+        } else {
+          codeText.className = "text-sm font-bold text-rose-400";
+          codeText.innerText = data.error || "Link không khả dụng!";
+        }
+      } catch (err) {
+        codeText.className = "text-sm font-bold text-rose-400";
+        codeText.innerText = "Lỗi xác thực hệ thống!";
+      }
+    }
+
+    claimCode();
+
+    btnCopy.onclick = () => {
+      const text = codeText.innerText;
+      if (text && !text.includes("!")) {
+        navigator.clipboard.writeText(text);
+        alert("Đã sao chép mã thành công!");
+      }
+    };
+  </script>
+</body>
+</html>
